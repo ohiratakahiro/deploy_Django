@@ -115,7 +115,7 @@ sudo python3.11 -m pip install django gunicorn psycopg2-binary pillow
 Djangoソースコードをクローンする
 ```
 cd ~
-git clone https://github.com/naritotakizawa/group_e
+git clone https://github.com/ohiratakahiro/deploy_Django.git
 ```
 
 本番環境用のsettingsを作成する
