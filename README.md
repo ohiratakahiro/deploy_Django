@@ -189,3 +189,84 @@ gunicornコマンドで、動作を確認してみる
 ```
 sudo cat /var/log/django.log
 ```
+
+
+PostgreSQLインストール
+```
+sudo apt install postgresql postgresql-contrib
+```
+
+ポスグレのデータベース作成や、データベースで使うユーザーを設定する
+```
+sudo -u postgres psql
+CREATE DATABASE djangodb;
+CREATE USER django_user WITH PASSWORD 'django';
+ALTER ROLE django_user SET client_encoding TO 'utf8';
+ALTER ROLE django_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE django_user SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE djangodb TO django_user;
+Ctrl + Z などで、ポスグレ画面から抜けます、
+```
+
+認証方式を少しかえる
+```
+sudo nano /etc/postgresql/14/main/pg_hba.conf
+```
+
+次の、local all all peer部分をtrustに書き換える
+```
+local   all             all                                     peer
+↓
+local   all             all                                     trust
+```
+
+設定ファイルを変更したので、再起動する
+```
+sudo systemctl restart postgresql
+Gunicornインストールと、systemdでの起動
+```
+
+マイグレート、コレクトスタティックを行う
+```
+sudo python3.11 manage.py migrate --settings=conf.production_settings
+sudo python3.11 manage.py collectstatic --settings=conf.production_settings
+```
+
+メディアファイル置き場を作り、それぞれに権限を設定し、djangoがファイルを作成できるようにする
+```
+sudo mkdir /var/www/media
+sudo chmod 775 /var
+sudo chmod 775 /var/www
+sudo chmod 777 /var/www/media
+sudo chmod 777 /var/www/static
+```
+
+gunicornコマンドで、動作できるか確認する
+```
+/usr/local/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 conf.wsgi:application --env DJANGO_SETTINGS_MODULE=conf.production_settings
+```
+
+systemdで起動できるようにする
+```
+sudo nano /etc/systemd/system/django.service
+```
+
+中身を次のようにする
+```
+[Unit]
+    Description=gunicorn
+    After=network.target
+[Service]
+    WorkingDirectory=/home/ubuntu/group_e
+    ExecStart=/usr/local/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 conf.wsgi:application
+    Environment="DJANGO_SETTINGS_MODULE=conf.production_settings"
+[Install]
+    WantedBy=multi-user.target
+```
+
+systemdで起動する。また、enableで自動起動するようにし、statusでちゃんと動作するかを確認してみる
+```
+sudo systemctl start django
+sudo systemctl enable django
+sudo systemctl status django
+```
