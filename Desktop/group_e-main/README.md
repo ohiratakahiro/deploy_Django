@@ -316,8 +316,3 @@ sudo systemctl start django
 sudo systemctl enable django
 sudo systemctl status django
 ```
-
-
-## 研修受講生へ
-
-長い間お疲れ様でした。これからも頑張ってください。
